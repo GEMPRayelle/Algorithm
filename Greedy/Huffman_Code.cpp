@@ -5,6 +5,7 @@
 #include <vector>
 #include <bitset>
 #include <string>
+
 using namespace std;
 
 // 허프만 트리의 노드 구조체
@@ -32,6 +33,8 @@ void buildFrequencyTable(const string &filename, unordered_map<char, int> &freq)
     char ch;
     while (file.get(ch))
     {
+        if (ch == '\n' || ch == '\0' || ch == ' ')
+            continue; // <- 여기에 걸러냄
         freq[ch]++;
     }
     file.close();
@@ -90,6 +93,8 @@ void encodeFile(const string &inFile, const string &outFile, const unordered_map
     // 파일을 문자 단위로 읽어서 해당 허프만 코드를 이어 붙임
     while (in.get(c))
     {
+        if (c == ' ' || c == '\n' || c == '\0')
+            continue; // 제외
         bitString += huffmanCode.at(c);
     }
 
@@ -138,29 +143,26 @@ void decodeFile(const string &encFile, const string &decFile, Node *root)
     out.close();
 }
 
-// TODO
-// 이 함수에서 압축 성공 여부가 확실하지가 않음
-//
 // 두 파일이 같은지를 비교
 bool filesAreEqual(const string &file1, const string &file2)
 {
     ifstream f1(file1), f2(file2);
+    char c1, c2;
 
-    /*char c1, c2;
-    while (f1.get(c1) && f2.get(c2)) {
-        if (c1 != c2) return false;
-    }
-    return f1.eof() && f2.eof();*/
-
-    string line1, line2;
-
-    while (getline(f1, line1) && getline(f2, line2))
+    while (true)
     {
-        if (line1 != line2)
+        // f1에서 특수문자 제외
+        while (f1.get(c1) && (c1 == ' ' || c1 == '\n' || c1 == '\0'))
+            ;
+        // f2는 인코딩-디코딩된 파일이므로 특수문자 없음
+        while (f2.get(c2) && (c2 == ' ' || c2 == '\n' || c2 == '\0'))
+            ;
+
+        if (f1.eof() && f2.eof())
+            return true;
+        if (f1.eof() || f2.eof() || c1 != c2)
             return false;
     }
-
-    return f1.eof() && f2.eof();
 }
 
 int main()
@@ -182,10 +184,6 @@ int main()
             cout << p.first << ": ";
         cout << p.second << '\n';
     }
-
-    // Debugging
-    /*cout << "총 문자 수: " << totalChars << '\n';
-    cout << "원래 비트 수 (x8): " << totalChars * 8 << " bits\n";*/
 
     Node *root = buildHuffmanTree(frequency); // 허프만 트리 생성
     generateCodes(root, "", huffmanCode);     // 허프만 코드 생성
